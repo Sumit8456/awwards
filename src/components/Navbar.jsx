@@ -1,101 +1,124 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from 'react'
+import { useRef } from 'react'
+import Button from './Button';
+import { TiLocationArrow } from 'react-icons/ti';
+import clsx from 'clsx';
+import gsap from 'gsap';
+import { useWindowScroll } from 'react-use';
 
-import { styles } from "../styles";
-import { navLinks } from "../constants";
-import { logo, menu, close } from "../assets";
+const navItems = ['Nexus','Vault','Prologue','About','Contact'];
 
 const Navbar = () => {
-  const [active, setActive] = useState("");
-  const [toggle, setToggle] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [isAudioPlaying,setIsAudioPlaying] = useState(false);
+
+  const [isIndicatorActive,setIsIndicatorActive] = useState(false);
+
+  const [lastScrollY,setlastScrollY] = useState(0);
+  const [isNavVisible,setIsNavVisible] = useState(true);
+
+  const navContainerRef = useRef(null);
+
+  const audioElementRef = useRef(null);
+
+  const {y: currentScrollY} = useWindowScroll();
+
+  useEffect( () => {
+
+    if(currentScrollY === 0){
+      setIsNavVisible(true);
+      navContainerRef.current.classList.remove('floating-nav');
+    }else if(currentScrollY > lastScrollY){
+      setIsNavVisible(false);
+      navContainerRef.current.classList.add('floating-nav');
+    }else if(currentScrollY < lastScrollY){
+      setIsNavVisible(true);
+      navContainerRef.current.classList.add('floating-nav');
+    }
+    setlastScrollY(currentScrollY);
+  },[currentScrollY,lastScrollY])
 
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      if (scrollTop > 100) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
-    };
+    gsap.to(navContainerRef.current, {
+      y:isNavVisible ? 0 : -100,
+      opacity:isNavVisible ? 1 : 0,
+      duration : 0.2,
 
-    window.addEventListener("scroll", handleScroll);
+    })
+  },[isNavVisible])
 
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const toggleAudioIndicator = () => {
+    setIsAudioPlaying((prev) => !prev);
+
+    setIsIndicatorActive((prev) => !prev);
+  }
+
+  useEffect(() =>{
+    if(isAudioPlaying){
+      audioElementRef.current.play();
+    }else{
+      audioElementRef.current.pause();
+    }
+  })
 
   return (
-    <nav
-      className={`${
-        styles.paddingX
-      } w-full flex items-center py-5 fixed top-0 z-20 ${
-        scrolled ? "bg-primary" : "bg-transparent"
-      }`}
+    <div
+      ref={navContainerRef}
+      className="fixed inset-x-0 top-4 z-50 h-16 border-none transition-all duration-700 sm:inset-x-6"
     >
-      <div className='w-full flex justify-between items-center max-w-7xl mx-auto'>
-        <Link
-          to='/'
-          className='flex items-center gap-2'
-          onClick={() => {
-            setActive("");
-            window.scrollTo(0, 0);
-          }}
-        >
-          <img src={logo} alt='logo' className='w-9 h-9 object-contain' />
-          <p className='text-white text-[18px] font-bold cursor-pointer flex '>
-            Sumit &nbsp;
-            <span className='sm:block hidden'> | JavaScript Mastery</span>
-          </p> 
-        </Link>
+      <header className="absolute top-1/2 w-full -translate-y-1/2">
+        <nav className="flex size-full items-center justify-between p-4">
+          {/* Logo and Product button */}
+          <div className="flex items-center gap-7">
+            <img src="/img/logo.png" alt="logo" className="w-10" />
 
-        <ul className='list-none hidden sm:flex flex-row gap-10'>
-          {navLinks.map((nav) => (
-            <li
-              key={nav.id}
-              className={`${
-                active === nav.title ? "text-white" : "text-secondary"
-              } hover:text-white text-[18px] font-medium cursor-pointer`}
-              onClick={() => setActive(nav.title)}
-            >
-              <a href={`#${nav.id}`}>{nav.title}</a>
-            </li>
-          ))}
-        </ul>
-
-        <div className='sm:hidden flex flex-1 justify-end items-center'>
-          <img
-            src={toggle ? close : menu}
-            alt='menu'
-            className='w-[28px] h-[28px] object-contain'
-            onClick={() => setToggle(!toggle)}
-          />
-
-          <div
-            className={`${
-              !toggle ? "hidden" : "flex"
-            } p-6 black-gradient absolute top-20 right-0 mx-4 my-2 min-w-[140px] z-10 rounded-xl`}
-          >
-            <ul className='list-none flex justify-end items-start flex-1 flex-col gap-4'>
-              {navLinks.map((nav) => (
-                <li
-                  key={nav.id}
-                  className={`font-poppins font-medium cursor-pointer text-[16px] ${
-                    active === nav.title ? "text-white" : "text-secondary"
-                  }`}
-                  onClick={() => {
-                    setToggle(!toggle);
-                    setActive(nav.title);
-                  }}
-                >
-                  <a href={`#${nav.id}`}>{nav.title}</a>
-                </li>
-              ))}
-            </ul>
+            <Button
+              id="product-button"
+              title="Products"
+              rightIcon={<TiLocationArrow />}
+              containerClass="bg-blue-50 md:flex hidden items-center justify-center gap-1"
+            />
           </div>
-        </div>
-      </div>
-    </nav>
+
+          {/* Navigation Links and Audio Button */}
+          <div className="flex h-full items-center">
+            <div className="hidden md:block">
+              {navItems.map((item, index) => (
+                <a
+                  key={index}
+                  href={`#${item.toLowerCase()}`}
+                  className="nav-hover-btn"
+                >
+                  {item}
+                </a>
+              ))}
+            </div>
+
+            <button
+           
+              className="ml-10 flex items-center space-x-0.5"onClick={toggleAudioIndicator}
+            >
+              <audio
+                ref={audioElementRef}
+                className="hidden"
+                src="/audio/loop.mp3"
+                loop
+              />
+              {[1, 2, 3, 4].map((bar) => (
+                <div
+                  key={bar}
+                  className={clsx("indicator-line", {
+                    
+                  })}
+                  style={{
+                    animationDelay: `${bar * 0.1}s`,
+                  }}
+                />
+              ))}
+            </button>
+          </div>
+        </nav>
+      </header>
+    </div>
   );
 };
 
